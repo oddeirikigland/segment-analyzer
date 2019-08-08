@@ -15,7 +15,15 @@ VERSION = "1.0.0"
 # prerequisite: setuptools
 # http://pypi.python.org/pypi/setuptools
 
-REQUIRES = ["black", "pre-commit", "flask"]
+REQUIRES = [
+    "black",
+    "pre-commit",
+    "requests",
+    "pymongo",
+    "flask_pymongo",
+    "stravalib",
+    "flask",
+]
 
 setup(
     name=NAME,
