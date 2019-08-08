@@ -11,7 +11,12 @@ A quick introduction of the minimal setup you need to get a hello world up &
 running.
 
 ```shell
-commands here
+python setup.py install --user
+pre-commit install
+brew cask install homebrew/cask-versions/adoptopenjdk8
+brew install swagger-codegen
+swagger-codegen generate -i https://developers.strava.com/swagger/swagger.json -l python -o generated/python
+cd generated/python && python setup.py install --user && cd ../..
 ```
 
 Here you should say what actually happens when you execute the code above.
