@@ -15,7 +15,7 @@ VERSION = "1.0.0"
 # prerequisite: setuptools
 # http://pypi.python.org/pypi/setuptools
 
-REQUIRES = ["black", "pre-commit"]
+REQUIRES = ["black", "pre-commit", "flask"]
 
 setup(
     name=NAME,
