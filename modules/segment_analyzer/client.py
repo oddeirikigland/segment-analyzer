@@ -1,6 +1,8 @@
 from requests.exceptions import HTTPError
 from stravalib.client import Client
 
+from modules.segment_analyzer.compare_leader_board import recieve_leader_board
+
 
 class Strava(Client):
     def __init__(self):
@@ -18,6 +20,12 @@ class Strava(Client):
         strava = Client()
         print(strava)
 
+    def explore_segment_leader_board(self, segment):
+        leader_board = super(Strava, self).get_segment_leaderboard(
+            segment_id=segment.id
+        )
+        return recieve_leader_board(leader_board)
+
     def explore_segments(
         self, bounds, activity_type=None, min_cat=None, max_cat=None
     ):
@@ -29,21 +37,7 @@ class Strava(Client):
                 lambda x: {
                     "id": x.id,
                     "name": x.name,
-                    "climb_category": x.climb_category,
-                    "climb_category_desc": x.climb_category_desc,
-                    "avg_grade": x.avg_grade,
-                    "start_latlng": x.start_latlng,
-                    "end_latlng": x.end_latlng,
-                    "elev_difference": {
-                        "num": x.elev_difference.num,
-                        "unit": x.elev_difference.unit.specifier,
-                    },
-                    "distance": {
-                        "num": x.distance.num,
-                        "unit": x.distance.unit.specifier,
-                    },
-                    "points": x.points,
-                    "starred": x.starred,
+                    "leader_board_stats": self.explore_segment_leader_board(x),
                 },
                 segments,
             )
