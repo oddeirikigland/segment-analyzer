@@ -6,11 +6,46 @@ from modules.segment_analyzer.compare_leader_board import recieve_leader_board
 
 def split_bound_area(bounds):
     sw_lat, sw_lng, ne_lat, ne_lng = bounds
-    lat_split_grid =  sw_lat + ((ne_lat - sw_lat) / 2)
+    lat_split_grid = sw_lat + ((ne_lat - sw_lat) / 2)
     bounds1 = [sw_lat, sw_lng, lat_split_grid, ne_lng]
     bounds2 = [lat_split_grid, sw_lng, ne_lat, ne_lng]
     return bounds1, bounds2
 
+
+def get_only_seconds(time_object):
+    days_as_sec = time_object["days"] * 3600
+    micro_sec_as_sec = time_object["microseconds"] / 1000000
+    return days_as_sec + time_object["seconds"] + micro_sec_as_sec
+
+
+def normalize_segments(filtered_segments):
+    max_star_count = max(
+        filtered_segments, key=lambda item: item["star_count"]
+    )["star_count"]
+    max_efforts = max(
+        filtered_segments,
+        key=lambda item: item["leader_board_stats"]["efforts"],
+    )["leader_board_stats"]["efforts"]
+    max_time_since = get_only_seconds(
+        max(
+            filtered_segments,
+            key=lambda item: get_only_seconds(
+                item["leader_board_stats"]["time_since_best"]
+            ),
+        )["leader_board_stats"]["time_since_best"]
+    )
+    return list(
+        map(
+            lambda x: {
+                "id": x["id"],
+                "name": x["name"],
+                "normalized_efforts": x["leader_board_stats"]["efforts"] / max_efforts,
+                "normalized_star_count": x["star_count"] / max_star_count,
+                "normalized_time_since": get_only_seconds(x["leader_board_stats"]["time_since_best"]) / max_time_since,
+            },
+            filtered_segments,
+        )
+    )
 
 class Strava(Client):
     def __init__(self):
@@ -48,23 +83,24 @@ class Strava(Client):
         else:
             self.all_segments += segments
 
-
     def explore_segments(
         self, bounds, activity_type=None, min_cat=None, max_cat=None
     ):
         segments = super(Strava, self).explore_segments(
             bounds, activity_type, min_cat, max_cat
         )
-        return list(
+        filtered_segments = list(
             map(
                 lambda x: {
                     "id": x.id,
                     "name": x.name,
                     "leader_board_stats": self.explore_segment_leader_board(x),
+                    "star_count": x.segment.star_count,
                 },
                 segments,
             )
         )
+        return normalize_segments(filtered_segments)
 
 
 if __name__ == "__main__":
