@@ -29,7 +29,7 @@ def strava_segments():
         ne_lng = request.args.get("ne_lng", default=10.592642, type=int)
         return (
             jsonify(
-                Strava().explore_segments(
+                Strava().get_all_segments_in_area(
                     bounds=[sw_lat, sw_lng, ne_lat, ne_lng]
                 )
             ),

@@ -4,9 +4,18 @@ from stravalib.client import Client
 from modules.segment_analyzer.compare_leader_board import recieve_leader_board
 
 
+def split_bound_area(bounds):
+    sw_lat, sw_lng, ne_lat, ne_lng = bounds
+    lat_split_grid =  sw_lat + ((ne_lat - sw_lat) / 2)
+    bounds1 = [sw_lat, sw_lng, lat_split_grid, ne_lng]
+    bounds2 = [lat_split_grid, sw_lng, ne_lat, ne_lng]
+    return bounds1, bounds2
+
+
 class Strava(Client):
     def __init__(self):
         self.token = ""
+        self.all_segments = []
         super(Strava, self).__init__(self.token)
 
     def authorized(self):
@@ -25,6 +34,20 @@ class Strava(Client):
             segment_id=segment.id
         )
         return recieve_leader_board(leader_board)
+
+    def get_all_segments_in_area(self, bounds):
+        self.find_all_segments_in_area(bounds)
+        return self.all_segments
+
+    def find_all_segments_in_area(self, bounds):
+        segments = self.explore_segments(bounds)
+        if len(segments) >= 10:
+            new_grid_west, new_grid_east = split_bound_area(bounds)
+            self.get_all_segments_in_area(new_grid_west)
+            self.get_all_segments_in_area(new_grid_east)
+        else:
+            self.all_segments += segments
+
 
     def explore_segments(
         self, bounds, activity_type=None, min_cat=None, max_cat=None
@@ -46,5 +69,5 @@ class Strava(Client):
 
 if __name__ == "__main__":
     s = Strava()
-    res = s.explore_segments(bounds=[59.9, 10.7, 59.95, 11.04])
+    res = s.explore_segments(bounds=[63.321, 10.168, 63.465535, 10.592642])
     print(res)
