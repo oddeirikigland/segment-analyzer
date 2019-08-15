@@ -39,13 +39,18 @@ def normalize_segments(filtered_segments):
             lambda x: {
                 "id": x["id"],
                 "name": x["name"],
-                "normalized_efforts": x["leader_board_stats"]["efforts"] / max_efforts,
+                "normalized_efforts": x["leader_board_stats"]["efforts"]
+                / max_efforts,
                 "normalized_star_count": x["star_count"] / max_star_count,
-                "normalized_time_since": get_only_seconds(x["leader_board_stats"]["time_since_best"]) / max_time_since,
+                "normalized_time_since": get_only_seconds(
+                    x["leader_board_stats"]["time_since_best"]
+                )
+                / max_time_since,
             },
             filtered_segments,
         )
     )
+
 
 class Strava(Client):
     def __init__(self):
