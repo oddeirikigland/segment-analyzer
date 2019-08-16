@@ -6,10 +6,7 @@ services:
    - "4000:4000"
   volumes:
    - .:/app
-  environment:
-   - ENV=development
-   - PORT=4000
-   - DB=mongodb://mongodb:27017/segment
+  env_file: .env
  mongodb:
   image: mongo:latest
   container_name: "mongodb"
