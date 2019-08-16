@@ -2,7 +2,7 @@ import os
 from flask import request, jsonify
 
 from constants import ROOT_DIR
-from modules.app import app, mongo
+from modules.app import app  # , mongo
 from modules import logger
 from modules.segment_analyzer.client import Strava
 

@@ -22,6 +22,7 @@ REQUIRES = [
     "pymongo",
     "flask_pymongo",
     "stravalib",
+    "python-dotenv==0.10.3",
     "flask",
 ]
 
