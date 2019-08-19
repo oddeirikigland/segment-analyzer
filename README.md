@@ -1,6 +1,6 @@
 ![Logo of the project](./images/logo.sample.png)
 
-# Segment Analyzer &middot; [![Build Status](https://img.shields.io/travis/npm/npm/latest.svg?style=flat-square)](https://travis-ci.org/npm/npm) [![npm](https://img.shields.io/npm/v/npm.svg?style=flat-square)](https://www.npmjs.com/package/npm) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/your/your-project/blob/master/LICENSE)
+# Segment Analyzer &middot; [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/your/your-project/blob/master/LICENSE)
 > Additional information or tag line
 
 A brief description of your project, what it is used for.
@@ -59,7 +59,11 @@ In case there's some step you have to take that publishes this project to a
 server, this is the right time to state it.
 
 ```shell
-packagemanager deploy your-project -s server.com -u username -p password
+heroku git:remote -a segment-analyzer
+heroku container:login
+heroku container:push web
+heroku container:release web
+heroku open
 ```
 
 And again you'd need to tell what the previous code actually does.

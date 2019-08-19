@@ -1,6 +1,9 @@
 FROM python:3.7
-ADD . /usr/src/app
-WORKDIR /usr/src/app
-EXPOSE 4000
-RUN python setup.py install --user
+
+ADD ./requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir -q -r /tmp/requirements.txt
+
+ADD ./ /app
+WORKDIR /app
+
 CMD ["python", "run.py"]

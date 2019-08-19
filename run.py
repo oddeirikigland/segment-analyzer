@@ -1,7 +1,5 @@
 """ index file for REST APIs using Flask """
 import os
-import sys
-import requests
 from flask import jsonify, make_response, send_from_directory
 from dotenv import load_dotenv
 
