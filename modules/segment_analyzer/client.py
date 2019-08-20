@@ -1,3 +1,4 @@
+import os
 from requests.exceptions import HTTPError
 from stravalib.client import Client
 
@@ -53,8 +54,8 @@ def normalize_segments(filtered_segments):
 
 
 class Strava(Client):
-    def __init__(self):
-        self.token = ""
+    def __init__(self, token=""):
+        self.token = token
         self.all_segments = []
         super(Strava, self).__init__(self.token)
 
@@ -66,8 +67,12 @@ class Strava(Client):
             return False
 
     def authorize(self):
-        strava = Client()
-        print(strava)
+        client_id = os.environ.get("CLIENT_ID")
+        authorize_url = self.authorization_url(
+            client_id=client_id,
+            redirect_uri="http://127.0.0.1:3000/strava_auth",
+        )
+        return authorize_url
 
     def explore_segment_leader_board(self, segment):
         leader_board = super(Strava, self).get_segment_leaderboard(
@@ -75,16 +80,30 @@ class Strava(Client):
         )
         return recieve_leader_board(leader_board)
 
+    def prioritized_segments(self):
+        return list(
+            map(
+                lambda x: {
+                    "segment_score": x["normalized_efforts"]
+                    + x["normalized_star_count"]
+                    + x["normalized_time_since"],
+                    "id": x["id"],
+                    "name": x["name"],
+                },
+                self.all_segments,
+            )
+        )
+
     def get_all_segments_in_area(self, bounds):
         self.find_all_segments_in_area(bounds)
-        return self.all_segments
+        return self.prioritized_segments()
 
     def find_all_segments_in_area(self, bounds):
         segments = self.explore_segments(bounds)
         if len(segments) >= 10:
             new_grid_west, new_grid_east = split_bound_area(bounds)
-            self.get_all_segments_in_area(new_grid_west)
-            self.get_all_segments_in_area(new_grid_east)
+            self.find_all_segments_in_area(new_grid_west)
+            self.find_all_segments_in_area(new_grid_east)
         else:
             self.all_segments += segments
 
@@ -110,5 +129,7 @@ class Strava(Client):
 
 if __name__ == "__main__":
     s = Strava()
-    res = s.explore_segments(bounds=[63.321, 10.168, 63.465535, 10.592642])
+    res = s.get_all_segments_in_area(
+        bounds=[63.321, 10.168, 63.465535, 10.592642]
+    )
     print(res)
