@@ -2,7 +2,7 @@ import os
 from flask import request, jsonify
 
 from constants import ROOT_DIR
-from modules.app import app  # , mongo
+from modules.app import app, mongo
 from modules import logger
 from modules.segment_analyzer.client import Strava
 
@@ -37,7 +37,7 @@ def strava_segments():
         ne_lng = request.args.get("ne_lng", default=10.592642, type=int)
         return (
             jsonify(
-                Strava(code).get_all_segments_in_area(
+                Strava(token=code, mongo=mongo).get_all_segments_in_area(
                     bounds=[sw_lat, sw_lng, ne_lat, ne_lng]
                 )
             ),

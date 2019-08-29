@@ -3,11 +3,12 @@ import os
 from flask import jsonify, make_response, send_from_directory
 from dotenv import load_dotenv
 
+load_dotenv()
+
 from constants import ROOT_DIR
 from modules import logger
 from modules.app import app
 
-load_dotenv()
 
 # Create a logger object to log the info and debug
 LOG = logger.get_root_logger(

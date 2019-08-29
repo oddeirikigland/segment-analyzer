@@ -54,8 +54,9 @@ def normalize_segments(filtered_segments):
 
 
 class Strava(Client):
-    def __init__(self, token=""):
+    def __init__(self, token, mongo):
         self.token = token
+        self.db = mongo.db
         self.all_segments = []
         super(Strava, self).__init__(self.token)
 
@@ -95,8 +96,9 @@ class Strava(Client):
         )
 
     def get_all_segments_in_area(self, bounds):
-        self.find_all_segments_in_area(bounds)
-        return self.prioritized_segments()
+        # self.find_all_segments_in_area(bounds)
+        return self.explore_segments(bounds)
+        # return self.prioritized_segments()
 
     def find_all_segments_in_area(self, bounds):
         segments = self.explore_segments(bounds)
@@ -116,15 +118,17 @@ class Strava(Client):
         filtered_segments = list(
             map(
                 lambda x: {
-                    "id": x.id,
+                    "_id": x.id,
                     "name": x.name,
-                    "leader_board_stats": self.explore_segment_leader_board(x),
                     "star_count": x.segment.star_count,
                 },
                 segments,
             )
         )
-        return normalize_segments(filtered_segments)
+        for segment in filtered_segments:
+            if not self.db.segments.find_one({"_id": segment["_id"]}):
+                self.db.segments.insert(segment)
+        return filtered_segments  # normalize_segments(filtered_segments)
 
 
 if __name__ == "__main__":
