@@ -1,6 +1,7 @@
 import os
 from requests.exceptions import HTTPError
 from stravalib.client import Client
+from datetime import datetime
 
 from modules.segment_analyzer.compare_leader_board import recieve_leader_board
 
@@ -58,6 +59,7 @@ class Strava(Client):
         self.token = token
         self.db = mongo.db
         self.all_segments = []
+        self.strava_api_requests = 0
         super(Strava, self).__init__(self.token)
 
     def authorized(self):
@@ -77,9 +79,13 @@ class Strava(Client):
 
     def explore_segment_leader_board(self, segment):
         leader_board = super(Strava, self).get_segment_leaderboard(
-            segment_id=segment.id
+            segment_id=segment["_id"]
         )
-        return recieve_leader_board(leader_board)
+        leader_board_stats = recieve_leader_board(leader_board)
+        leader_board_stats["time_info_added"] = datetime.now()
+        self.db.segments.update_one(
+            {"_id": segment["_id"]}, {"$set": leader_board_stats}, upsert=False
+        )
 
     def prioritized_segments(self):
         return list(
@@ -96,18 +102,24 @@ class Strava(Client):
         )
 
     def get_all_segments_in_area(self, bounds):
-        # self.find_all_segments_in_area(bounds)
-        return self.explore_segments(bounds)
+        self.find_all_segments_in_area(bounds)
+        print(
+            "\n===============================\nNumber of Strava API calls: {}\n===============================\n".format(
+                self.strava_api_requests
+            )
+        )
+        # Todo: Only return segments within area
+        # Todo: Normalize segment data for areas to prioritize, use normalize_segments function
+        return [segment for segment in self.db.segments.find()]
+        # return self.explore_segments(bounds)
         # return self.prioritized_segments()
 
     def find_all_segments_in_area(self, bounds):
-        segments = self.explore_segments(bounds)
-        if len(segments) >= 10:
+        segments_in_bound = self.explore_segments(bounds)
+        if segments_in_bound >= 10 and self.strava_api_requests < 550:
             new_grid_west, new_grid_east = split_bound_area(bounds)
             self.find_all_segments_in_area(new_grid_west)
             self.find_all_segments_in_area(new_grid_east)
-        else:
-            self.all_segments += segments
 
     def explore_segments(
         self, bounds, activity_type=None, min_cat=None, max_cat=None
@@ -125,10 +137,12 @@ class Strava(Client):
                 segments,
             )
         )
+        self.strava_api_requests += len(filtered_segments) + 1
         for segment in filtered_segments:
             if not self.db.segments.find_one({"_id": segment["_id"]}):
                 self.db.segments.insert(segment)
-        return filtered_segments  # normalize_segments(filtered_segments)
+                self.explore_segment_leader_board(segment)
+        return len(filtered_segments)
 
 
 if __name__ == "__main__":
