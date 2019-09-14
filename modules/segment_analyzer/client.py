@@ -87,6 +87,17 @@ class Strava(Client):
             {"_id": segment["_id"]}, {"$set": leader_board_stats}, upsert=False
         )
 
+    def add_segment_coordinates(self, segment_id):
+        segment = super(Strava, self).get_segment(segment_id)
+        coordinates = {
+            "start_latitude": segment.start_latitude,
+            "start_longitude": segment.start_longitude,
+        }
+        self.strava_api_requests += 1
+        self.db.segments.update_one(
+            {"_id": segment_id}, {"$set": coordinates}, upsert=False
+        )
+
     def prioritized_segments(self):
         return list(
             map(
@@ -102,17 +113,10 @@ class Strava(Client):
         )
 
     def get_all_segments_in_area(self, bounds):
-        self.find_all_segments_in_area(bounds)
-        print(
-            "\n===============================\nNumber of Strava API calls: {}\n===============================\n".format(
-                self.strava_api_requests
-            )
-        )
         # Todo: Only return segments within area
         # Todo: Normalize segment data for areas to prioritize, use normalize_segments function
-        return [segment for segment in self.db.segments.find()]
-        # return self.explore_segments(bounds)
         # return self.prioritized_segments()
+        return [segment for segment in self.db.segments.find()]
 
     def find_all_segments_in_area(self, bounds):
         segments_in_bound = self.explore_segments(bounds)
@@ -120,6 +124,11 @@ class Strava(Client):
             new_grid_west, new_grid_east = split_bound_area(bounds)
             self.find_all_segments_in_area(new_grid_west)
             self.find_all_segments_in_area(new_grid_east)
+        print(
+            "\n===============================\nNumber of Strava API calls: {}\n===============================\n".format(
+                self.strava_api_requests
+            )
+        )
 
     def explore_segments(
         self, bounds, activity_type=None, min_cat=None, max_cat=None
@@ -142,12 +151,5 @@ class Strava(Client):
             if not self.db.segments.find_one({"_id": segment["_id"]}):
                 self.db.segments.insert(segment)
                 self.explore_segment_leader_board(segment)
+                self.add_segment_coordinates(segment["_id"])
         return len(filtered_segments)
-
-
-if __name__ == "__main__":
-    s = Strava()
-    res = s.get_all_segments_in_area(
-        bounds=[63.321, 10.168, 63.465535, 10.592642]
-    )
-    print(res)
