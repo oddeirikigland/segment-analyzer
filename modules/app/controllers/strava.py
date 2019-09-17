@@ -1,5 +1,6 @@
 import os
 from flask import request, jsonify
+from flask_cors import cross_origin
 
 from constants import ROOT_DIR
 from modules.app import app, mongo
@@ -28,6 +29,7 @@ def strava_log_in():
 
 
 @app.route("/strava_segments", methods=["GET"])
+@cross_origin()
 def strava_segments():
     if request.method == "GET":
         sw_lat = request.args.get("sw_lat", default=63.321, type=int)
