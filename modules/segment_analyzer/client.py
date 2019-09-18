@@ -87,11 +87,20 @@ class Strava(Client):
             {"_id": segment["_id"]}, {"$set": leader_board_stats}, upsert=False
         )
 
-    def add_segment_coordinates(self, segment_id):
+    def add_segment_details(self, segment_id):
         segment = super(Strava, self).get_segment(segment_id)
         coordinates = {
             "start_latitude": segment.start_latitude,
             "start_longitude": segment.start_longitude,
+            "end_latitude": segment.end_latitude,
+            "end_longitude": segment.end_longitude,
+            "activity_type": segment.activity_type,
+            "distance": {"value": segment.distance.num},
+            "state": segment.state,
+            "total_elevation_gain": {
+                "value": segment.total_elevation_gain.num
+            },
+            "climb_category": segment.climb_category,
         }
         self.strava_api_requests += 1
         self.db.segments.update_one(
@@ -124,11 +133,6 @@ class Strava(Client):
             new_grid_west, new_grid_east = split_bound_area(bounds)
             self.find_all_segments_in_area(new_grid_west)
             self.find_all_segments_in_area(new_grid_east)
-        print(
-            "\n===============================\nNumber of Strava API calls: {}\n===============================\n".format(
-                self.strava_api_requests
-            )
-        )
 
     def explore_segments(
         self, bounds, activity_type=None, min_cat=None, max_cat=None
@@ -151,5 +155,5 @@ class Strava(Client):
             if not self.db.segments.find_one({"_id": segment["_id"]}):
                 self.db.segments.insert(segment)
                 self.explore_segment_leader_board(segment)
-                self.add_segment_coordinates(segment["_id"])
+                self.add_segment_details(segment["_id"])
         return len(filtered_segments)
