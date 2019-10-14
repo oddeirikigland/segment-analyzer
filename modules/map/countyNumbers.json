@@ -1,0 +1,88 @@
+{
+    "containeditems": [
+        {
+            "label": 14,
+            "description": "Sogn og Fjordane"
+        },
+        {
+            "label": 12,
+            "description": "Hordaland"
+        },
+        {
+            "label": 5,
+            "description": "Oppland"
+        },
+        {
+            "label": 20,
+            "description": "Finnmark - Finnmárku"
+        },
+        {
+            "label": 2,
+            "description": "Akershus"
+        },
+        {
+            "label": 18,
+            "description": "Nordland"
+        },
+        {
+            "label": 6,
+            "description": "Buskerud"
+        },
+        {
+            "label": 50,
+            "description": "Nord-Trøndelag"
+        },
+        {
+            "label": 7,
+            "description": "Vestfold"
+        },
+        {
+            "label": 50,
+            "description": "Trøndelag"
+        },
+        {
+            "label": 19,
+            "description": "Troms - Romsa"
+        },
+        {
+            "label": 8,
+            "description": "Telemark"
+        },
+        {
+            "label": 10,
+            "description": "Vest-Agder"
+        },
+        {
+            "label": 4,
+            "description": "Hedmark"
+        },
+        {
+            "label": 3,
+            "description": "Oslo"
+        },
+        {
+            "label": 30,
+            "description": "Viken"
+        },
+        {
+            "label": 1,
+            "description": "Østfold"
+        },
+        {
+            "label": 50,
+            "description": "Sør-Trøndelag"
+        },
+        {
+            "label": 9,
+            "description": "Aust-Agder"
+        },
+        {
+            "label": 11,
+            "description": "Rogaland"
+        },
+        {
+            "label": 15,
+            "description": "Møre og Romsdal"
+        }
+    ]
+}

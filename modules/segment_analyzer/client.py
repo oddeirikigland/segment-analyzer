@@ -2,16 +2,11 @@ import os
 from requests.exceptions import HTTPError
 from stravalib.client import Client
 from datetime import datetime
+import json
 
+from constants import ROOT_DIR
 from modules.segment_analyzer.compare_leader_board import recieve_leader_board
-
-
-def split_bound_area(bounds):
-    sw_lat, sw_lng, ne_lat, ne_lng = bounds
-    lat_split_grid = sw_lat + ((ne_lat - sw_lat) / 2)
-    bounds1 = [sw_lat, sw_lng, lat_split_grid, ne_lng]
-    bounds2 = [lat_split_grid, sw_lng, ne_lat, ne_lng]
-    return bounds1, bounds2
+from modules.segment_analyzer.grid_split import split_bound_area
 
 
 def get_only_seconds(time_object):
@@ -26,32 +21,40 @@ def normalize_segments(filtered_segments):
     )["star_count"]
     max_efforts = max(
         filtered_segments,
-        key=lambda item: item["leader_board_stats"]["efforts"],
-    )["leader_board_stats"]["efforts"]
+        key=lambda item: item["efforts"],
+    )["efforts"]
     max_time_since = get_only_seconds(
         max(
             filtered_segments,
             key=lambda item: get_only_seconds(
-                item["leader_board_stats"]["time_since_best"]
+                item["time_since_best"]
             ),
-        )["leader_board_stats"]["time_since_best"]
+        )["time_since_best"]
     )
-    return list(
-        map(
-            lambda x: {
-                "id": x["id"],
-                "name": x["name"],
-                "normalized_efforts": x["leader_board_stats"]["efforts"]
-                / max_efforts,
-                "normalized_star_count": x["star_count"] / max_star_count,
-                "normalized_time_since": get_only_seconds(
-                    x["leader_board_stats"]["time_since_best"]
-                )
-                / max_time_since,
-            },
-            filtered_segments,
-        )
-    )
+    for x in filtered_segments:
+        x.update({
+            "normalized_efforts": x["efforts"] / max_efforts,
+            "normalized_star_count": x["star_count"] / max_star_count,
+            "normalized_time_since": get_only_seconds(x["time_since_best"]) / max_time_since,
+        })
+    return filtered_segments
+
+
+def add_prioritize_segment_value(segments):
+    for segment in segments:
+        segment.update({
+            "segment_score": segment["normalized_efforts"] + segment["normalized_star_count"] + segment["normalized_time_since"]
+        })
+    return segments
+
+
+def get_county_number(county_name):
+    with open('{}/modules/map/countyNumbers.json'.format(ROOT_DIR), 'r') as JSON:
+        json_dict = json.load(JSON)
+        for county in json_dict["containeditems"]:
+            if county["description"] == county_name:
+                return county["label"]
+    return 0
 
 
 class Strava(Client):
@@ -60,7 +63,16 @@ class Strava(Client):
         self.db = mongo.db
         self.all_segments = []
         self.strava_api_requests = 0
+        self.strava_daily_api_requests = 0
         super(Strava, self).__init__(self.token)
+
+    def reset_api_request_counter(self):
+        self.strava_daily_api_requests += self.strava_api_requests
+        self.strava_api_requests = 0
+
+    def reset_all_api_request_counter(self):
+        self.strava_daily_api_requests = 0
+        self.strava_api_requests = 0
 
     def authorized(self):
         strava = Client(access_token=self.token)
@@ -96,7 +108,10 @@ class Strava(Client):
             "end_longitude": segment.end_longitude,
             "activity_type": segment.activity_type,
             "distance": {"value": segment.distance.num},
-            "state": segment.state,
+            "county": segment.state,
+            "county_number": get_county_number(segment.state),
+            "city": segment.city,
+            "country": segment.country,
             "total_elevation_gain": {
                 "value": segment.total_elevation_gain.num
             },
@@ -107,25 +122,22 @@ class Strava(Client):
             {"_id": segment_id}, {"$set": coordinates}, upsert=False
         )
 
-    def prioritized_segments(self):
-        return list(
-            map(
-                lambda x: {
-                    "segment_score": x["normalized_efforts"]
-                    + x["normalized_star_count"]
-                    + x["normalized_time_since"],
-                    "id": x["id"],
-                    "name": x["name"],
-                },
-                self.all_segments,
-            )
-        )
-
-    def get_all_segments_in_area(self, bounds):
+    def get_easiest_segments_in_area(self, bounds, county_number):
         # Todo: Only return segments within area
-        # Todo: Normalize segment data for areas to prioritize, use normalize_segments function
-        # return self.prioritized_segments()
-        return [segment for segment in self.db.segments.find()]
+        segments = []
+        if county_number > 0:
+            segments = [segment for segment in self.db.segments.find({"county_number": county_number})]
+        else:
+            segments = [segment for segment in self.db.segments.find()]
+        norm_segments = normalize_segments(segments)
+        prio_segments = add_prioritize_segment_value(norm_segments)
+        sorted_segments = sorted(prio_segments, key=lambda k: k['segment_score'])
+        ten_easiest = sorted_segments[:10]
+        color = 100
+        for segment in ten_easiest:
+            segment.update({"color": color})
+            color -= 10
+        return ten_easiest
 
     def find_all_segments_in_area(self, bounds):
         segments_in_bound = self.explore_segments(bounds)

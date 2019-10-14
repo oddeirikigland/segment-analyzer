@@ -32,14 +32,16 @@ def strava_log_in():
 @cross_origin()
 def strava_segments():
     if request.method == "GET":
-        sw_lat = request.args.get("sw_lat", default=63.321, type=int)
-        sw_lng = request.args.get("sw_lng", default=10.168, type=int)
-        ne_lat = request.args.get("ne_lat", default=63.465535, type=int)
-        ne_lng = request.args.get("ne_lng", default=10.592642, type=int)
+        sw_lat = request.args.get("sw_lat", default=63.321, type=float)
+        sw_lng = request.args.get("sw_lng", default=10.168, type=float)
+        ne_lat = request.args.get("ne_lat", default=63.465535, type=float)
+        ne_lng = request.args.get("ne_lng", default=10.592642, type=float)
+        county_number = request.args.get("county_number", default=0, type=int)
         return (
             jsonify(
-                Strava(token="", mongo=mongo).get_all_segments_in_area(
-                    bounds=[sw_lat, sw_lng, ne_lat, ne_lng]
+                Strava(token="", mongo=mongo).get_easiest_segments_in_area(
+                    bounds=[sw_lat, sw_lng, ne_lat, ne_lng],
+                    county_number=county_number
                 )
             ),
             200,
@@ -50,10 +52,10 @@ def strava_segments():
 def strava_update_db():
     if request.method == "GET":
         code = request.args.get("code")
-        sw_lat = request.args.get("sw_lat", default=63.321, type=int)
-        sw_lng = request.args.get("sw_lng", default=10.168, type=int)
-        ne_lat = request.args.get("ne_lat", default=63.465535, type=int)
-        ne_lng = request.args.get("ne_lng", default=10.592642, type=int)
+        sw_lat = request.args.get("sw_lat", default=63.321, type=float)
+        sw_lng = request.args.get("sw_lng", default=10.168, type=float)
+        ne_lat = request.args.get("ne_lat", default=63.465535, type=float)
+        ne_lng = request.args.get("ne_lng", default=10.592642, type=float)
         Strava(token=code, mongo=mongo).find_all_segments_in_area(
             bounds=[sw_lat, sw_lng, ne_lat, ne_lng]
         )
