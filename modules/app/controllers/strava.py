@@ -6,6 +6,7 @@ from constants import ROOT_DIR
 from modules.app import app, mongo
 from modules import logger
 from modules.segment_analyzer.client import Strava
+from modules.segment_analyzer.db_populator import init_populate
 
 
 LOG = logger.get_root_logger(
@@ -41,7 +42,7 @@ def strava_segments():
             jsonify(
                 Strava(token="", mongo=mongo).get_easiest_segments_in_area(
                     bounds=[sw_lat, sw_lng, ne_lat, ne_lng],
-                    county_number=county_number
+                    county_number=county_number,
                 )
             ),
             200,
@@ -58,5 +59,18 @@ def strava_update_db():
         ne_lng = request.args.get("ne_lng", default=10.592642, type=float)
         Strava(token=code, mongo=mongo).find_all_segments_in_area(
             bounds=[sw_lat, sw_lng, ne_lat, ne_lng]
+        )
+        return "Success"
+
+
+@app.route("/strava_populate_norway_db", methods=["GET"])
+def strava_populate_norway_db():
+    if request.method == "GET":
+        code = request.args.get("code")
+        init_populate(
+            code,
+            mongo,
+            [58.157935, 2.854579, 71.255612, 31.759905],
+            grid_split=1000,
         )
         return "Success"

@@ -19,37 +19,43 @@ def normalize_segments(filtered_segments):
     max_star_count = max(
         filtered_segments, key=lambda item: item["star_count"]
     )["star_count"]
-    max_efforts = max(
-        filtered_segments,
-        key=lambda item: item["efforts"],
-    )["efforts"]
+    max_efforts = max(filtered_segments, key=lambda item: item["efforts"])[
+        "efforts"
+    ]
     max_time_since = get_only_seconds(
         max(
             filtered_segments,
-            key=lambda item: get_only_seconds(
-                item["time_since_best"]
-            ),
+            key=lambda item: get_only_seconds(item["time_since_best"]),
         )["time_since_best"]
     )
     for x in filtered_segments:
-        x.update({
-            "normalized_efforts": x["efforts"] / max_efforts,
-            "normalized_star_count": x["star_count"] / max_star_count,
-            "normalized_time_since": get_only_seconds(x["time_since_best"]) / max_time_since,
-        })
+        x.update(
+            {
+                "normalized_efforts": x["efforts"] / max_efforts,
+                "normalized_star_count": x["star_count"] / max_star_count,
+                "normalized_time_since": get_only_seconds(x["time_since_best"])
+                / max_time_since,
+            }
+        )
     return filtered_segments
 
 
 def add_prioritize_segment_value(segments):
     for segment in segments:
-        segment.update({
-            "segment_score": segment["normalized_efforts"] + segment["normalized_star_count"] + segment["normalized_time_since"]
-        })
+        segment.update(
+            {
+                "segment_score": segment["normalized_efforts"]
+                + segment["normalized_star_count"]
+                + segment["normalized_time_since"]
+            }
+        )
     return segments
 
 
 def get_county_number(county_name):
-    with open('{}/modules/map/countyNumbers.json'.format(ROOT_DIR), 'r') as JSON:
+    with open(
+        "{}/modules/map/countyNumbers.json".format(ROOT_DIR), "r"
+    ) as JSON:
         json_dict = json.load(JSON)
         for county in json_dict["containeditems"]:
             if county["description"] == county_name:
@@ -121,17 +127,25 @@ class Strava(Client):
         self.db.segments.update_one(
             {"_id": segment_id}, {"$set": coordinates}, upsert=False
         )
+        return coordinates["country"] == "Norway"
 
     def get_easiest_segments_in_area(self, bounds, county_number):
         # Todo: Only return segments within area
         segments = []
         if county_number > 0:
-            segments = [segment for segment in self.db.segments.find({"county_number": county_number})]
+            segments = [
+                segment
+                for segment in self.db.segments.find(
+                    {"county_number": county_number}
+                )
+            ]
         else:
             segments = [segment for segment in self.db.segments.find()]
         norm_segments = normalize_segments(segments)
         prio_segments = add_prioritize_segment_value(norm_segments)
-        sorted_segments = sorted(prio_segments, key=lambda k: k['segment_score'])
+        sorted_segments = sorted(
+            prio_segments, key=lambda k: k["segment_score"]
+        )
         ten_easiest = sorted_segments[:10]
         color = 100
         for segment in ten_easiest:
@@ -167,5 +181,7 @@ class Strava(Client):
             if not self.db.segments.find_one({"_id": segment["_id"]}):
                 self.db.segments.insert(segment)
                 self.explore_segment_leader_board(segment)
-                self.add_segment_details(segment["_id"])
+                is_norwegian_segment = self.add_segment_details(segment["_id"])
+                if not is_norwegian_segment:
+                    self.db.segments.delete_one({"country": {"$ne": "Norway"}})
         return len(filtered_segments)
