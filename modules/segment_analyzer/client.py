@@ -3,6 +3,7 @@ from requests.exceptions import HTTPError
 from stravalib.client import Client
 from datetime import datetime
 import json
+from math import cos, asin, sqrt
 
 from constants import ROOT_DIR
 from modules.segment_analyzer.compare_leader_board import recieve_leader_board
@@ -61,6 +62,31 @@ def get_county_number(county_name):
             if county["description"] == county_name:
                 return county["label"]
     return 0
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    p = 0.017453292519943295  # Pi/180
+    a = (
+        0.5
+        - cos((lat2 - lat1) * p) / 2
+        + cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2
+    )
+    return 12742 * asin(sqrt(a))
+
+
+def is_segment_within_range(segment, latitude, longitude, segment_distance):
+    try:
+        return (
+            haversine_distance(
+                segment["start_latitude"],
+                segment["start_longitude"],
+                latitude,
+                longitude,
+            )
+            < segment_distance
+        )
+    except KeyError:
+        return False
 
 
 class Strava(Client):
@@ -129,36 +155,60 @@ class Strava(Client):
         )
         return coordinates["country"] == "Norway"
 
-    def get_easiest_segments_in_area(self, bounds, county_number):
-        # Todo: Only return segments within area
-        segments = []
+    def get_easiest_segments_in_area(
+        self,
+        county_number,
+        segment_distance,
+        latitude,
+        longitude,
+        activity_view,
+        number_of_segments,
+    ):
+        query = {}
         if county_number > 0:
-            segments = [
-                segment
-                for segment in self.db.segments.find(
-                    {"county_number": county_number}
-                )
-            ]
-        else:
-            segments = [segment for segment in self.db.segments.find()]
+            query["county_number"] = county_number
+        if activity_view != "All":
+            query["activity_type"] = activity_view
+
+        segments = [segment for segment in self.db.segments.find(query)]
+        segments = list(
+            filter(
+                lambda segment: is_segment_within_range(
+                    segment, latitude, longitude, segment_distance
+                ),
+                segments,
+            )
+        )
+        if len(segments) == 0:
+            return []
         norm_segments = normalize_segments(segments)
         prio_segments = add_prioritize_segment_value(norm_segments)
         sorted_segments = sorted(
             prio_segments, key=lambda k: k["segment_score"]
         )
-        ten_easiest = sorted_segments[:10]
-        color = 100
-        for segment in ten_easiest:
-            segment.update({"color": color})
-            color -= 10
-        return ten_easiest
 
-    def find_all_segments_in_area(self, bounds):
-        segments_in_bound = self.explore_segments(bounds)
-        if segments_in_bound >= 10 and self.strava_api_requests < 550:
+        fraq_size = int((number_of_segments / 100) * len(sorted_segments))
+        sorted_segments = sorted_segments[:fraq_size]
+
+        color_fraq = 100 / len(sorted_segments)
+        color = 100
+        for segment in sorted_segments:
+            segment.update({"color": color})
+            color -= color_fraq
+        return sorted_segments
+
+    def find_all_segments_in_area(self, bounds, activity_type):
+        segments_in_bound = self.explore_segments(
+            bounds, activity_type=activity_type
+        )
+        if (
+            segments_in_bound >= 10
+            and self.strava_api_requests < 550
+            and self.strava_daily_api_requests < 29950
+        ):
             new_grid_west, new_grid_east = split_bound_area(bounds)
-            self.find_all_segments_in_area(new_grid_west)
-            self.find_all_segments_in_area(new_grid_east)
+            self.find_all_segments_in_area(new_grid_west, activity_type)
+            self.find_all_segments_in_area(new_grid_east, activity_type)
 
     def explore_segments(
         self, bounds, activity_type=None, min_cat=None, max_cat=None
@@ -185,3 +235,13 @@ class Strava(Client):
                 if not is_norwegian_segment:
                     self.db.segments.delete_one({"country": {"$ne": "Norway"}})
         return len(filtered_segments)
+
+    def location_to_populate(self, latitude, longitude):
+        self.db.locations.insert(
+            {
+                "date": datetime.now(),
+                "latitude": latitude,
+                "longitude": longitude,
+                "is_populated": False,
+            }
+        )
