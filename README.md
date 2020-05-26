@@ -27,17 +27,3 @@ pre-commit install
 ```shell
 flask run
 ```
-
-## Deploying
-
-give instructions on how to build and release a new version
-In case there's some step you have to take that publishes this project to a
-server, this is the right time to state it.
-
-```shell
-heroku git:remote -a segment-analyzer
-heroku container:login
-heroku container:push web
-heroku container:release web
-heroku open
-```
