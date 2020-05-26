@@ -4,7 +4,6 @@ import datetime
 from bson.objectid import ObjectId
 from flask import Flask
 from flask_cors import CORS
-
 from flask_pymongo import PyMongo
 
 
@@ -21,6 +20,7 @@ class JSONEncoder(json.JSONEncoder):
 
 # create the flask object
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
