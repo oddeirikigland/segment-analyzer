@@ -64,3 +64,6 @@ class Strava(Client):
                 "is_populated": False,
             }
         )
+
+    def get_table(self):
+        return {"asd": 3333}

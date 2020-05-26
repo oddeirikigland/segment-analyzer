@@ -16,6 +16,7 @@ VERSION = "1.0.0"
 # http://pypi.python.org/pypi/setuptools
 
 REQUIRES = [
+    "Flask-Table",
     "gunicorn==20.0.4",
     "black",
     "pre-commit",
