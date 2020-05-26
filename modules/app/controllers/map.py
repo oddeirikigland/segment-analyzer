@@ -1,4 +1,3 @@
-import os
 from flask import request, jsonify, json
 from flask_cors import cross_origin
 
