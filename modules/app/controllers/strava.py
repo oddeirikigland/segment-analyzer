@@ -4,17 +4,10 @@ from flask_cors import cross_origin
 
 from constants import ROOT_DIR
 from modules.app import app, mongo
-from modules import logger
 from modules.segment_analyzer.client import Strava
 from modules.segment_analyzer.db_populator import (
     init_populate,
     populate_saved_locations,
-)
-
-
-LOG = logger.get_root_logger(
-    os.environ.get(__name__),
-    filename=os.path.join(ROOT_DIR, "modules/logger/output.log"),
 )
 
 
