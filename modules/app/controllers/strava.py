@@ -35,7 +35,9 @@ def read_root():
     if request.method == "GET":
         if strava.token_expires_at:
             check_token()
-            return strava.get_table(), 200
+            sort = request.args.get("sort", default="rank")
+            reverse = request.args.get("direction", default="asc") == "desc"
+            return strava.get_table(sort, reverse), 200
         else:
             authorize_url = strava.authorization_url(
                 client_id=CLIENT_ID, redirect_uri=REDIRECT_URL
