@@ -141,6 +141,7 @@ class Strava(Client):
                             avg_time=leader_board_stats["avg_time"],
                             best_time=leader_board_stats["best_time"],
                             metric=0,
+                            info_updated=time_now,
                         )
                         self.db.user_segments.update_one(
                             {"user_id": athlete.id},

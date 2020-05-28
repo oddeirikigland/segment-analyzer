@@ -18,6 +18,7 @@ class SortableTable(Table):
     avg_time = Col("avg_time")
     best_time = Col("best_time")
     metric = Col("metric")
+    info_updated = Col("info_updated")
     # link = LinkCol('Link', 'flask_link', url_kwargs=dict(id='id'), allow_sort=False)
     allow_sort = True
 
@@ -47,6 +48,7 @@ class Segment(object):
         avg_time,
         best_time,
         metric,
+        info_updated,
     ):
         self.id = id
         self.name = name
@@ -66,6 +68,7 @@ class Segment(object):
             self.metric = ((rank / athlete_count) + avg_vs_best) / 2
         else:
             self.metric = metric
+        self.info_updated = info_updated
 
 
 class Segments:
