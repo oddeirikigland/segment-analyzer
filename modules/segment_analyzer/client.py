@@ -20,7 +20,9 @@ from modules.segment_analyzer.compare_leader_board import recieve_leader_board
 class Strava(Client):
     def __init__(self, mongo):
         self.db = mongo.db
-        self.update_db_time = datetime.fromisoformat("2010-01-01")
+        self.update_db_time = datetime.strptime(
+            "Jun 1 2005  1:33PM", "%b %d %Y %I:%M%p"
+        )
         super().__init__()
 
     def get_easiest_segments_in_area(
