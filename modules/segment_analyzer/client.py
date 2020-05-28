@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 from stravalib.client import Client
 from stravalib.exc import RateLimitTimeout, RateLimitExceeded
-from datetime import datetime
+from stravalib.model import Activity
+from threading import Thread, active_count
 
 from modules.segment_analyzer.client_helpers import (
     is_segment_within_range,
@@ -12,11 +14,13 @@ from modules.segment_analyzer.segment_table import (
     Segments,
     Segment,
 )
+from modules.segment_analyzer.compare_leader_board import recieve_leader_board
 
 
 class Strava(Client):
     def __init__(self, mongo):
         self.db = mongo.db
+        self.update_db_time = datetime.fromisoformat("2010-01-01")
         super().__init__()
 
     def get_easiest_segments_in_area(
@@ -71,21 +75,42 @@ class Strava(Client):
             }
         )
 
-    def get_table(self, sort, reverse):
-        segments = Segments()
+    def update_user_db(self, activity_limit):
+        time_now = datetime.now()
+        if (time_now - self.update_db_time).total_seconds() < 10 * 60:
+            print("dont update db, recently did")
+            return
+        else:
+            self.update_db_time = time_now
         try:
-            for activity in self.get_activities(limit=1):
-                print("{0.name} {0.moving_time}".format(activity))
+            athlete = self.get_athlete()
+            if not self.db.user_segments.find_one({"user_id": athlete.id}):
+                self.db.user_segments.insert(
+                    {"user_id": athlete.id, "user_segments": []}
+                )
+
+            for activity in self.get_activities(limit=activity_limit):
                 activity = self.get_activity(
                     activity_id=activity.id, include_all_efforts=True
                 )
+                if activity.type not in [Activity.RIDE, Activity.RUN]:
+                    continue
                 for segment_effort in activity.segment_efforts:
                     segment_id = segment_effort.segment.id
-                    if not segments.get_segment_by_id(id=segment_id):
+
+                    if "user_segments" not in self.db.user_segments.find_one(
+                        {"user_id": athlete.id},
+                        {"user_segments": {"$elemMatch": {"id": segment_id}}},
+                    ):
+                        # The segment is not stored for this user
+                        # TODO: Update segment if long time since stored
+
                         s = self.get_segment(segment_id=segment_id)
+                        leader_board_stats = recieve_leader_board(
+                            self.get_segment_leaderboard(segment_id=segment_id)
+                        )
                         rank = 0
                         for entry in s.leaderboard.entries:
-                            athlete = self.get_athlete()
                             if (
                                 str(
                                     athlete.firstname
@@ -96,29 +121,62 @@ class Strava(Client):
                             ):
                                 rank = entry.rank
                                 break
-                        segments.add_segment(
-                            Segment(
-                                id=s.id,
-                                name=s.name,
-                                rank=rank,
-                                activity_type=s.activity_type,
-                                distance=s.distance,
-                                pr_time=s.pr_time or 0,
-                                athlete_pr_effort=s.athlete_count
-                                / s.effort_count,
-                                effort_count=s.effort_count,
-                                athlete_count=s.athlete_count,
-                                star_count=s.star_count,
-                            )
+                        segment = Segment(
+                            id=s.id,
+                            name=s.name,
+                            rank=rank,
+                            activity_type=s.activity_type,
+                            distance=s.distance.num,
+                            pr_time=s.pr_time or 0,
+                            athlete_pr_effort=s.athlete_count / s.effort_count,
+                            effort_count=s.effort_count,
+                            athlete_count=s.athlete_count,
+                            star_count=s.star_count,
+                            time_since_best=leader_board_stats[
+                                "time_since_best"
+                            ],
+                            avg_vs_best=leader_board_stats["avg_vs_best"],
+                            avg_time=leader_board_stats["avg_time"],
+                            best_time=leader_board_stats["best_time"],
+                            metric=0,
+                        )
+                        self.db.user_segments.update_one(
+                            {"user_id": athlete.id},
+                            {"$push": {"user_segments": segment.__dict__}},
                         )
         except RateLimitTimeout:
             print("RateLimitTimeout")
         except RateLimitExceeded:
             print("RateLimitExceeded")
 
+    def get_table(self, sort, reverse, activity_limit, return_type):
+        segments = Segments()
+        try:
+            athlete = self.get_athlete()
+            res = [
+                segment["user_segments"]
+                for segment in self.db.user_segments.find(
+                    {"user_id": athlete.id}
+                )
+            ]
+            if len(res) > 0:
+                for segment_values in res[0]:
+                    s = Segment(**segment_values)
+                    segments.add_segment(s)
+        except RateLimitTimeout:
+            print("RateLimitTimeout")
+        except RateLimitExceeded:
+            print("RateLimitExceeded")
+        thread = Thread(
+            target=self.update_user_db,
+            kwargs={"activity_limit": activity_limit},
+        )
+        thread.start()
+        if return_type == "json":
+            return segments.get_segments_as_dict()
         table = SortableTable(
             segments.get_sorted_segments(sort, reverse),
             sort_by=sort,
             sort_reverse=reverse,
         )
-        return table.__html__()
+        return table

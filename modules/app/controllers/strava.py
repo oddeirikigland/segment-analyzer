@@ -1,6 +1,6 @@
 import os
 import time
-from flask import request, jsonify, redirect, url_for
+from flask import request, jsonify, redirect, url_for, render_template
 from flask_cors import cross_origin
 
 from modules.app import app, mongo
@@ -35,9 +35,18 @@ def read_root():
     if request.method == "GET":
         if strava.token_expires_at:
             check_token()
-            sort = request.args.get("sort", default="rank")
+            sort = request.args.get("sort", default="metric")
             reverse = request.args.get("direction", default="asc") == "desc"
-            return strava.get_table(sort, reverse), 200
+            activity_limit = request.args.get(
+                "activity_limit", default=5, type=int
+            )
+            return_type = request.args.get("return_type", default="table")
+            table = strava.get_table(
+                sort, reverse, activity_limit, return_type
+            )
+            if return_type == "json":
+                return jsonify(table), 200
+            return render_template("strava.html", data=table)
         else:
             authorize_url = strava.authorization_url(
                 client_id=CLIENT_ID, redirect_uri=REDIRECT_URL

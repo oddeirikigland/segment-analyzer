@@ -13,6 +13,11 @@ class SortableTable(Table):
     effort_count = Col("effort_count")
     athlete_count = Col("athlete_count")
     star_count = Col("star_count")
+    time_since_best = Col("time_since_best")
+    avg_vs_best = Col("avg_vs_best")
+    avg_time = Col("avg_time")
+    best_time = Col("best_time")
+    metric = Col("metric")
     # link = LinkCol('Link', 'flask_link', url_kwargs=dict(id='id'), allow_sort=False)
     allow_sort = True
 
@@ -37,6 +42,11 @@ class Segment(object):
         effort_count,
         athlete_count,
         star_count,
+        time_since_best,
+        avg_vs_best,
+        avg_time,
+        best_time,
+        metric,
     ):
         self.id = id
         self.name = name
@@ -48,6 +58,14 @@ class Segment(object):
         self.effort_count = effort_count
         self.athlete_count = athlete_count
         self.star_count = star_count
+        self.time_since_best = time_since_best
+        self.avg_vs_best = avg_vs_best
+        self.avg_time = avg_time
+        self.best_time = best_time
+        if metric == 0:
+            self.metric = ((rank / athlete_count) + avg_vs_best) / 2
+        else:
+            self.metric = metric
 
 
 class Segments:
@@ -59,6 +77,9 @@ class Segments:
 
     def get_segments(self):
         return self.segments
+
+    def get_segments_as_dict(self):
+        return [segment.__dict__ for segment in self.segments]
 
     def get_sorted_segments(self, sort, reverse=False):
         return sorted(

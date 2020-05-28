@@ -5,6 +5,7 @@ from bson.objectid import ObjectId
 from flask import Flask
 from flask_cors import CORS
 from flask_pymongo import PyMongo
+from constants import ROOT_DIR
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -19,7 +20,7 @@ class JSONEncoder(json.JSONEncoder):
 
 
 # create the flask object
-app = Flask(__name__)
+app = Flask(__name__, template_folder="{}/modules/app/pages".format(ROOT_DIR))
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
 cors = CORS(app)

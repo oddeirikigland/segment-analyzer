@@ -11,6 +11,9 @@ SECRET_KEY=something_secret
 FLASK_APP=run
 FLASK_ENV=development
 DB=mongodb://localhost:27017/segment-analyzer
+CLIENT_ID=from_strava
+CLIENT_SECRET=from_strava
+REDIRECT_URL=http://localhost:5000/
 ```
 
 ### Setting up Dev
